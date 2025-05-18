@@ -1,0 +1,58 @@
+name: Manual Completions API Call
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Message to send to the completions API'
+        required: true
+        default: 'Hello, how are you?'
+      api_url:
+        description: 'Completions API URL'
+        required: true
+        default: 'https://nextjs-mcp-use.vercel.app/api/completions'
+
+jobs:
+  call-completions-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Call Completions API
+        run: |
+          echo "Calling Completions API at ${{ github.event.inputs.api_url }} with message: ${{ github.event.inputs.message }}"
+          
+          # Create a JSON payload with the message
+          PAYLOAD=$(cat <<EOF
+          {
+            "messages": [],
+            "message": "${{ github.event.inputs.message }}"
+          }
+          EOF
+          )
+          
+          # Make the API call with curl
+          RESPONSE=$(curl -s -X POST "${{ github.event.inputs.api_url }}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            --max-time 30)
+          
+          # Save the response to a file
+          echo "$RESPONSE" > completions-response.json
+          
+          # Print a summary of the response
+          echo "Response received and saved to completions-response.json"
+          echo "Response preview:"
+          echo "$RESPONSE" | head -n 20
+
+      - name: Upload response as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: completions-response
+          path: completions-response.json

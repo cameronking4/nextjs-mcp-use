@@ -1,0 +1,58 @@
+name: Manual Chat API Call
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Message to send to the chat API'
+        required: true
+        default: 'Hello, how are you?'
+      api_url:
+        description: 'Chat API URL'
+        required: true
+        default: 'https://nextjs-mcp-use.vercel.app/api/chat'
+
+jobs:
+  call-chat-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Call Chat API
+        run: |
+          echo "Calling Chat API at ${{ github.event.inputs.api_url }} with message: ${{ github.event.inputs.message }}"
+          
+          # Create a JSON payload with the message
+          PAYLOAD=$(cat <<EOF
+          {
+            "messages": [],
+            "message": "${{ github.event.inputs.message }}"
+          }
+          EOF
+          )
+          
+          # Make the API call with curl
+          RESPONSE=$(curl -s -X POST "${{ github.event.inputs.api_url }}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            --max-time 30)
+          
+          # Save the response to a file
+          echo "$RESPONSE" > chat-response.json
+          
+          # Print a summary of the response
+          echo "Response received and saved to chat-response.json"
+          echo "Response preview:"
+          echo "$RESPONSE" | head -n 20
+
+      - name: Upload response as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: chat-response
+          path: chat-response.json

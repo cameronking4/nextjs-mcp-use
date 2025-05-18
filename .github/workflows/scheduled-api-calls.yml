@@ -1,0 +1,110 @@
+name: Scheduled API Calls
+
+on:
+  schedule:
+    # Run every day at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      chat_api_url:
+        description: 'Chat API URL'
+        required: false
+        default: 'https://nextjs-mcp-use.vercel.app/api/chat'
+      completions_api_url:
+        description: 'Completions API URL'
+        required: false
+        default: 'https://nextjs-mcp-use.vercel.app/api/completions'
+      message:
+        description: 'Message to send to the APIs'
+        required: false
+        default: 'What is the current status of the system?'
+
+jobs:
+  call-apis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Set API URLs and message
+        run: |
+          # Use inputs if provided, otherwise use defaults from repository secrets
+          CHAT_API_URL="${{ github.event.inputs.chat_api_url || secrets.CHAT_API_URL || 'https://nextjs-mcp-use.vercel.app/api/chat' }}"
+          COMPLETIONS_API_URL="${{ github.event.inputs.completions_api_url || secrets.COMPLETIONS_API_URL || 'https://nextjs-mcp-use.vercel.app/api/completions' }}"
+          MESSAGE="${{ github.event.inputs.message || secrets.DEFAULT_API_MESSAGE || 'What is the current status of the system?' }}"
+          
+          # Export as environment variables for later steps
+          echo "CHAT_API_URL=$CHAT_API_URL" >> $GITHUB_ENV
+          echo "COMPLETIONS_API_URL=$COMPLETIONS_API_URL" >> $GITHUB_ENV
+          echo "MESSAGE=$MESSAGE" >> $GITHUB_ENV
+          
+          # Add timestamp to the message
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+
+      - name: Call Chat API
+        run: |
+          echo "Calling Chat API at $CHAT_API_URL with message: $MESSAGE (at $TIMESTAMP)"
+          
+          # Create a JSON payload with the message
+          PAYLOAD=$(cat <<EOF
+          {
+            "messages": [],
+            "message": "$MESSAGE (Scheduled check at $TIMESTAMP)"
+          }
+          EOF
+          )
+          
+          # Make the API call with curl
+          RESPONSE=$(curl -s -X POST "$CHAT_API_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            --max-time 30)
+          
+          # Save the response to a file
+          echo "$RESPONSE" > chat-response.json
+          
+          # Print a summary of the response
+          echo "Response received and saved to chat-response.json"
+          echo "Response preview:"
+          echo "$RESPONSE" | head -n 20
+
+      - name: Call Completions API
+        run: |
+          echo "Calling Completions API at $COMPLETIONS_API_URL with message: $MESSAGE (at $TIMESTAMP)"
+          
+          # Create a JSON payload with the message
+          PAYLOAD=$(cat <<EOF
+          {
+            "messages": [],
+            "message": "$MESSAGE (Scheduled check at $TIMESTAMP)"
+          }
+          EOF
+          )
+          
+          # Make the API call with curl
+          RESPONSE=$(curl -s -X POST "$COMPLETIONS_API_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            --max-time 30)
+          
+          # Save the response to a file
+          echo "$RESPONSE" > completions-response.json
+          
+          # Print a summary of the response
+          echo "Response received and saved to completions-response.json"
+          echo "Response preview:"
+          echo "$RESPONSE" | head -n 20
+
+      - name: Upload responses as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: api-responses-${{ env.TIMESTAMP }}
+          path: |
+            chat-response.json
+            completions-response.json
