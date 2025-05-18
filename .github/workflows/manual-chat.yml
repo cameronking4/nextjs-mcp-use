@@ -18,12 +18,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
+      
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-
+      
       - name: Call Chat API
         run: |
           echo "Calling Chat API at ${{ github.event.inputs.api_url }} with message: ${{ github.event.inputs.message }}"
@@ -37,22 +37,28 @@ jobs:
           EOF
           )
           
-          # Make the API call with curl
-          RESPONSE=$(curl -s -X POST "${{ github.event.inputs.api_url }}" \
+          # Make the API call with curl and capture the streamed response
+          echo "Starting API call with streaming response..."
+          curl -X POST "${{ github.event.inputs.api_url }}" \
             -H "Content-Type: application/json" \
             -d "$PAYLOAD" \
-            --max-time 30)
+            --max-time 800 \
+            -o chat-response-raw.txt
           
-          # Save the response to a file
-          echo "$RESPONSE" > chat-response.json
+          # Process the streamed response
+          echo "API call completed, processing response..."
+          cat chat-response-raw.txt | jq -s '.' > chat-response.json || {
+            echo "Warning: jq processing failed, saving raw response"
+            cp chat-response-raw.txt chat-response.json
+          }
           
           # Print a summary of the response
           echo "Response received and saved to chat-response.json"
-          echo "Response preview:"
-          echo "$RESPONSE" | head -n 20
-
+          echo "Response preview (first 20 lines):"
+          head -n 20 chat-response.json || cat chat-response.json
+      
       - name: Upload response as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chat-response
           path: chat-response.json
