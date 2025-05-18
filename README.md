@@ -1,4 +1,4 @@
-# Next.js MCP Server with Registry
+# Headless MCP-use (from Registry) with Next.js
 
 **Uses `@vercel/mcp-adapter` with a configurable MCP registry**
 
