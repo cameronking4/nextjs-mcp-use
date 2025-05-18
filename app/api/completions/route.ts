@@ -7,9 +7,8 @@ import {
   type CoreAssistantMessage,
   type CoreSystemMessage
 } from 'ai';
-import { experimental_createMCPClient } from 'ai';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { openai } from '@ai-sdk/openai';
+import { createMcpClients } from '../../../lib/mcp-clients';
 
 // Set the maximum duration for the response
 export const maxDuration = 800;
@@ -37,19 +36,11 @@ export async function POST(request: Request) {
     // Debug the message format
     console.log('Message format check:', JSON.stringify(fullMessages));
 
-    // Create an MCP client using SSE transport with the server URL from env variables
-    const serverUrl = process.env.MCP_SERVER_URL || 'http://localhost:3002/sse';
-    console.log('Connecting to MCP server at:', serverUrl);
+    // Create MCP clients for all enabled servers in the registry
+    console.log('Creating MCP clients from registry');
     
-    const mcpClient = await experimental_createMCPClient({
-      name: 'MyClient',
-      transport: new SSEClientTransport(new URL(serverUrl)),
-    });
-    console.log('MCP client created successfully');
-
-    // Retrieve tools from the MCP client
-    const tools = await mcpClient.tools();
-    console.log('Retrieved tools:', tools.length ? `${tools.length} tools available` : 'No tools available');
+    const { tools } = await createMcpClients();
+    console.log('Retrieved tools:', Object.keys(tools).length ? `${Object.keys(tools).length} tools available` : 'No tools available');
 
     try {
       // Convert to proper CoreMessage format that generateText expects

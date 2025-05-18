@@ -1,0 +1,33 @@
+{
+  "playwright": {
+    "url": "http://localhost:3001/sse",
+    "enabled": true
+  },
+  "custom-mcp-server": {
+    "url": "http://localhost:3002/sse",
+    "enabled": true
+  },
+  "Firecrawl": {
+    "url": "http://localhost:3003/sse",
+    "env": {
+      "FIRECRAWL_API_KEY": "XXXXXXXXXXX"
+    },
+    "enabled": false
+  },
+  "Firecrawl-SSE": {
+    "url": "http://localhost:3004/sse",
+    "enabled": true
+  },
+  "browserbase": {
+    "url": "http://localhost:3004/sse",
+    "env": {
+      "BROWSERBASE_API_KEY": "XXXXXXXXXXX",
+      "BROWSERBASE_PROJECT_ID": "XXXXXXXXXXX"
+    },
+    "enabled": false
+  },
+  "Reddit": {
+    "url": "http://localhost:3006/sse",
+    "enabled": false
+  }
+}
